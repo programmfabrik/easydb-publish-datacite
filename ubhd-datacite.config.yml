@@ -1,0 +1,11 @@
+plugin:
+  name: ubhd-datacite
+  version: 0.1
+  displayname:
+    de-DE: Webhook zur DOI Registrierung mit Datacite, etc.
+    en-US: Webhook to register DOIs with Datacite, etc.
+  info:
+    de-DE: ""
+    en-US: "Get easydb object metadata, register with DOI provider, call easydb publish API"
+  webhooks:
+    - name: register-doi
