@@ -14,6 +14,17 @@ const easyDbUrl = info.config.system.server.external_url;
 
 const config = require('../../config.js');
 
+
+function returnJsonError(error, status = 500) {
+  console.log(JSON.stringify({
+    headers: {
+      'Content-Type': 'application/json; charset: utf-8'
+    },
+    body: JSON.stringify({error}),
+    status_code: status
+  }));
+}
+
 function authHeader(username, password) {
   return 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
 }
@@ -115,27 +126,23 @@ async function registerDoiForObject(dbObject, easyDbOpts, dataciteOpts) {
   log('Publish response:');
   log(publishResponse);
   return {
-    objectMetadata: metadataXml,
-    dataciteMetadataResponse,
-    dataciteMintbody: body,
-    dataciteMintResponse,
-    publish,
-    publishResponse
+    published: publishResponse
   };
 }
 
 async function registerAllDOIs(objects, useConfig) {
   const session = await authenticateEasyDb(config.easyDb.user, config.easyDb.password);
-  if(!session.authenticated) {
-    ez5.returnJsonBody({ info: info});
-  }
   const easyDbOpts = Object.assign({ token: session.token }, config.easyDb);
 
   // New or updated object call async register doi and await all result
   return Promise.all(objects.map( dbObject => registerDoiForObject(dbObject, easyDbOpts, config.datacite[useConfig]) ));
 }
 
-/* how to write different responses
+/* How to write different responses
+   easydb Webhook Plugin expects JSON output on STDOUT.
+   We can return a JSON object with keys "headers", "body" and "status_code".
+   see https://docs.easydb.de/en/technical/plugins/webhooks/webhook/
+
 console.log(JSON.stringify({
   headers: {
     'Content-Type': 'text/html; charset: utf-8'
@@ -151,41 +158,42 @@ if ('test' in info.parameters.query_string_parameters) {
 }
 
 var {useConfig = 'test'} = info.parameters.query_string_parameters;
-
 // Parse body
 if (info.parameters.body) {
   log(`Using config ${useConfig}`);
-  const transition = JSON.parse(info.parameters.body);
-  log(transition);
-  if (['UPDATE', 'INSERT'].includes(transition.operation)) {
-    registerAllDOIs(transition.objects, useConfig).then( statuses => {
-      log('All async registerDoiForObject finished');
-      ez5.returnJsonBody(Object.assign({ info }, statuses));
-    }).catch(error => {
-      log('ERROR ' + error.toString());
-      ez5.returnJsonBody({error: error.toString()});
-    })
+  try {
+    const transition = JSON.parse(info.parameters.body);
+    log(transition);
+    if (['UPDATE', 'INSERT'].includes(transition.operation)) {
+      registerAllDOIs(transition.objects, useConfig).then( statuses => {
+        log('All async registerDoiForObject finished');
+        ez5.returnJsonBody(Object.assign(statuses));
+      }).catch(error => {
+        log('ERROR ' + error.toString());
+        returnJsonError(error.toString());
+      })
+    }
+  }
+  catch (error) {
+    log('ERROR ' + error.toString());
+    returnJsonError(error.toString());
   }
 }
 else if (test) {
   (async () => {
-    try {
-      const session = await authenticateEasyDb(config.easyDb.user, config.easyDb.password);
-      if(!session.authenticated) {
-        ez5.returnJsonBody({ info: info});
-      }
-      const easyDbOpts = Object.assign({ token: session.token }, config.easyDb);
-      return await registerDoiForObject({
-        '_system_object_id': 29279,
-        '_uuid': 'b1d5c5ba-69d1-4b8d-954f-5de235c43f4a'
-      }, easyDbOpts, config.datacite['test'] );
-    }
-    catch (e) {
-      log('ERROR ' + e.toString());
-      return {error: e.toString()}
-    }
-  })().then( status => ez5.returnJsonBody(Object.assign({ info }, status)));
+    //const session = await authenticateEasyDb(config.easyDb.user, config.easyDb.password);
+    const session = await authenticateEasyDb("bla", config.easyDb.password);
+    const easyDbOpts = Object.assign({ token: session.token }, config.easyDb);
+    return await registerDoiForObject({
+      '_system_object_id': 29279,
+      '_uuid': 'b1d5c5ba-69d1-4b8d-954f-5de235c43f4a'
+    }, easyDbOpts, config.datacite['test'] );
+  })().then( status => ez5.returnJsonBody(status))
+  .catch( error => {
+    log('ERROR ' + error.toString());
+    returnJsonError(error.toString());
+  });
 }
 else {
-  ez5.returnJsonBody({ info: info });
+  returnJsonError('Call without test query parameter or no content in body', 400);
 }
