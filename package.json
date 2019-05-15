@@ -1,5 +1,5 @@
 {
-  "name": "easydb-webhook-doi",
+  "name": "easydb-ubhd-datacite",
   "version": "0.1.0",
   "description": "",
   "main": "build/webhooks/register-doi.js",
@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "buffer-equal-constant-time": "^1.0.1",
     "node-fetch": "^2.3.0"
   }
 }

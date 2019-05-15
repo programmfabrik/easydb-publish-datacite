@@ -2,25 +2,28 @@ const ez5 = require('ez5');
 const util = require('util');
 const fs = require('fs');
 const querystring = require('querystring');
+const crypto = require('crypto');
 
 const fetch = require('node-fetch');
-
-// Configuration
+const bufferEq = require('buffer-equal-constant-time');
 
 const info = JSON.parse(process.argv[2]);
 info.paths = module.paths;
 info.env = process.env;
 const easyDbUrl = info.config.system.server.external_url;
 
+// Read configuration
 const config = require('../../config.js');
 
 
-function returnJsonError(error, status = 500) {
+function returnAndLogJsonError(error, status = 500) {
+  const errorString = JSON.stringify({error});
+  log(errorString)
   console.log(JSON.stringify({
     headers: {
       'Content-Type': 'application/json; charset: utf-8'
     },
-    body: JSON.stringify({error}),
+    body: errorString,
     status_code: status
   }));
 }
@@ -138,6 +141,16 @@ async function registerAllDOIs(objects, useConfig) {
   return Promise.all(objects.map( dbObject => registerDoiForObject(dbObject, easyDbOpts, config.datacite[useConfig]) ));
 }
 
+function verifySignature(body, receivedSignature, secret) {
+  log('verifying receivedSignature: ' + receivedSignature);
+  let hmac = crypto.createHmac('sha1', secret);
+  hmac.update(body);
+  const signature = 'sha1=' + hmac.digest('hex');
+  // Compare buffers in constant time
+  log('calculated signature: ' + signature);
+  return bufferEq(new Buffer(signature), new Buffer(receivedSignature));
+}
+
 /* How to write different responses
    easydb Webhook Plugin expects JSON output on STDOUT.
    We can return a JSON object with keys "headers", "body" and "status_code".
@@ -152,48 +165,32 @@ console.log(JSON.stringify({
 */
 
 // Parse query parameters
-var test = false;
-if ('test' in info.parameters.query_string_parameters) {
-  test = info.parameters.query_string_parameters.test.includes('true')
-}
-
-var {useConfig = 'test'} = info.parameters.query_string_parameters;
+var {useConfig = 'test'} = info.request.query_string_parameters;
 // Parse body
-if (info.parameters.body) {
-  log(`Using config ${useConfig}`);
-  try {
-    const transition = JSON.parse(info.parameters.body);
-    log(transition);
-    if (['UPDATE', 'INSERT'].includes(transition.operation)) {
-      registerAllDOIs(transition.objects, useConfig).then( statuses => {
-        log('All async registerDoiForObject finished');
-        ez5.returnJsonBody(Object.assign(statuses));
-      }).catch(error => {
-        log('ERROR ' + error.toString());
-        returnJsonError(error.toString());
-      })
-    }
-  }
-  catch (error) {
-    log('ERROR ' + error.toString());
-    returnJsonError(error.toString());
-  }
+if (!info.request.body) {
+  returnAndLogJsonError('Missing request body', 400);
+  return;
 }
-else if (test) {
-  (async () => {
-    //const session = await authenticateEasyDb(config.easyDb.user, config.easyDb.password);
-    const session = await authenticateEasyDb("bla", config.easyDb.password);
-    const easyDbOpts = Object.assign({ token: session.token }, config.easyDb);
-    return await registerDoiForObject({
-      '_system_object_id': 29279,
-      '_uuid': 'b1d5c5ba-69d1-4b8d-954f-5de235c43f4a'
-    }, easyDbOpts, config.datacite['test'] );
-  })().then( status => ez5.returnJsonBody(status))
-  .catch( error => {
-    log('ERROR ' + error.toString());
-    returnJsonError(error.toString());
-  });
+if (!verifySignature(info.request.body, info.request.headers['X-Hub-Signature'], config.HMACSecret)) {
+  returnAndLogJsonError('Invalid signature hash or wrong HMACSecret configured', 401);
+  return;
 }
-else {
-  returnJsonError('Call without test query parameter or no content in body', 400);
+log(`Using config ${useConfig}`);
+try {
+  const transition = JSON.parse(info.request.body);
+  log(info.request);
+  log(transition);
+  if (!['UPDATE', 'INSERT'].includes(transition.operation)) {
+    returnAndLogJsonError('Invalid JSON body, expected "operation" key with value "UPDATE" or "INSERT" operation')
+    return;
+  }
+  registerAllDOIs(transition.objects, useConfig).then( statuses => {
+    log('All registerDoiForObject finished successfully');
+    ez5.returnJsonBody(Object.assign(statuses));
+  }).catch(error => {
+    returnAndLogJsonError(error.toString());
+  })
+}
+catch (error) {
+  returnAndLogJsonError(error.toString());
 }

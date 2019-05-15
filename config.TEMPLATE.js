@@ -1,6 +1,7 @@
 // Configuration for the datacite webhook
 //
 module.exports = {
+  HMACSecret: 'dasisteingeheimnis',
   logFile: '/easydb-5/var/register-doi.log',
   easyDb: {
     user: 'easydb-api-user',
