@@ -85,7 +85,7 @@ async function registerDoiForObject(dbObject, easyDbOpts, dataciteOpts) {
   let metadataXml = await fetch(metadataUrl).then(resp => resp.text());
   log(`Got metadata for ${dbObject._uuid}`);
   //TODO find better placeholder string
-  metadataXml = metadataXml.replace('10.xxx', doiPrefix);
+  metadataXml = metadataXml.replace('___DOI_PLACEHOLDER___', doi);
 
   const dataciteMetadataUrl = dataciteEndpoint + '/metadata/' + doi;
   log(`PUT metadata to ${dataciteMetadataUrl}`);

@@ -15,13 +15,16 @@ module.exports = {
       username: 'datacite-api-user',
       password: 'anotherpassword',
       endpoint: 'https://mds.test.datacite.org',
-      doiPrefix: '10.5072/'
+      // Doi will be built like this "<doiPrefix><systemObjectID>", e.g.,
+      // given the following prefix and systemObjectID = 1234:
+      // 10.5072/abc.1234
+      doiPrefix: '10.5072/abc.'
     },
     ubhd: {
       username: 'another-datacite-api-user',
       password: 'onemorepassword',
       endpoint: 'https://mds.datacite.org',
-      doiPrefix: '10.xxxx/abc'
+      doiPrefix: '10.xxxx/abc.'
     }
   }
 }
