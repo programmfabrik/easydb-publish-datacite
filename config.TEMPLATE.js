@@ -15,13 +15,13 @@ module.exports = {
       username: 'datacite-api-user',
       password: 'anotherpassword',
       endpoint: 'https://mds.test.datacite.org',
-      doiPrefix: '10.5072'
+      doiPrefix: '10.5072/'
     },
     ubhd: {
       username: 'another-datacite-api-user',
       password: 'onemorepassword',
       endpoint: 'https://mds.datacite.org',
-      doiPrefix: '10.xxxx'
+      doiPrefix: '10.xxxx/abc'
     }
   }
 }

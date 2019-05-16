@@ -79,7 +79,7 @@ async function registerDoiForObject(dbObject, easyDbOpts, dataciteOpts) {
   const dataciteAuth = authHeader(username, password);
   const metadataUrl = easyDbUrl + '/api/v1/objects/uuid/' + dbObject._uuid + '/format/xslt/' + xsltName;
   const systemObjectId = dbObject._system_object_id;
-  const doi = `${doiPrefix}/${systemObjectId}`;
+  const doi = `${doiPrefix}${systemObjectId}`;
   const objectDetailUrl = `${easyDbUrl}/detail/${systemObjectId}`;
 
   let metadataXml = await fetch(metadataUrl).then(resp => resp.text());
