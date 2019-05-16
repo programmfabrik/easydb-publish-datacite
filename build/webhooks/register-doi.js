@@ -17,13 +17,12 @@ const config = require('../../config.js');
 
 
 function returnAndLogJsonError(error, status = 500) {
-  const errorString = JSON.stringify({error});
-  log(errorString)
+  log(error);
   console.log(JSON.stringify({
     headers: {
       'Content-Type': 'application/json; charset: utf-8'
     },
-    body: errorString,
+    body: JSON.stringify({error}),
     status_code: status
   }));
 }
@@ -69,7 +68,8 @@ async function authenticateEasyDb(username, password) {
   }
   else {
     const responseText = await authenticateResp.text();
-    throw Error(`Failed easyDb authentication: ${authenticateResp.status} ${authenticateResp.statusText}, response: ${responseText}`);
+    throw Error('Failed easyDb authentication:'
+      + `${authenticateResp.status} ${authenticateResp.statusText}, response: ${responseText}`);
   }
 }
 
@@ -96,8 +96,13 @@ async function registerDoiForObject(dbObject, easyDbOpts, dataciteOpts) {
       'Content-Type': 'application/xml',
       'Authorization': dataciteAuth,
     }
-  }).then(resp => resp.text());
-  log('SUCCESS, response: ' + dataciteMetadataResponse);
+  })
+  const dataciteMetadataResponseText = await dataciteMetadataResponse.text();
+  if (!dataciteMetadataResponse.ok) {
+    throw Error('Failed Datacite metadata registration: '
+      + `${dataciteMetadataResponse.status} ${dataciteMetadataResponse.statusText}, response: ${dataciteMetadataResponseText}`);
+  }
+  log('Success, response: ' + dataciteMetadataResponseText);
 
   const dataciteMintUrl = `${dataciteEndpoint}/doi/${doi}`;
   const body = `doi=${doi}\nurl=${objectDetailUrl}\n`
@@ -109,9 +114,14 @@ async function registerDoiForObject(dbObject, easyDbOpts, dataciteOpts) {
       'Content-Type': 'text/plain;charset=UTF-8',
       'Authorization': dataciteAuth,
     }
-  }).then(resp => resp.text());
-  log('SUCCESS, response: ' + dataciteMintResponse);
-  // TODO call api publish here
+  })
+  const dataciteMintResponseText = await dataciteMintResponse.text();
+  if (!dataciteMintResponse.ok) {
+    throw Error('Failed Datacite url registration: '
+      + `${dataciteMintResponse.status} ${dataciteMintResponse.statusText}, response: ${dataciteMintResponseText}`);
+  }
+  log('Success, response: ' + dataciteMintResponseText);
+
   const publish = {
     system_object_id: systemObjectId,
     collector,
@@ -119,17 +129,24 @@ async function registerDoiForObject(dbObject, easyDbOpts, dataciteOpts) {
     easydb_uri: objectDetailUrl
   }
 
-  log('POST publish object:');
+  const publishApiUrl = easyDbUrl + '/api/v1/publish?token=' + easyDbToken;
+  log(`POST ${publishApiUrl}, with publish object:`);
   log(publish);
-  publishResponse = await fetch(easyDbUrl + '/api/v1/publish?token=' + easyDbToken,
+  const publishResponse = await fetch(easyDbUrl + '/api/v1/publish?token=' + easyDbToken,
   {
     method: 'post',
     body: JSON.stringify([{publish}])
-  }).then(resp => resp.json());
-  log('Publish response:');
-  log(publishResponse);
+  })
+  const publishResponseObject = await publishResponse.json();
+  if (!publishResponse.ok ) {
+    throw Error(`Failed easyDb API publish: ${publishResponse.status} ${publishResponse.statusText}, response: `
+      + JSON.stringify(publishResponseObject));
+  }
+
+  log('Success, response:');
+  log(publishResponseObject);
   return {
-    published: publishResponse
+    published: publishResponseObject
   };
 }
 
@@ -186,7 +203,7 @@ try {
   }
   registerAllDOIs(transition.objects, useConfig).then( statuses => {
     log('All registerDoiForObject finished successfully');
-    ez5.returnJsonBody(Object.assign(statuses));
+    ez5.returnJsonBody({status: statuses});
   }).catch(error => {
     returnAndLogJsonError(error.toString());
   })
