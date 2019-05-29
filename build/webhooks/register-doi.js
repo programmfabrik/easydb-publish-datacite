@@ -187,8 +187,12 @@ function verifySignature(body, receivedSignature, secret) {
 
   TODO: Check how to write custom messages
 
-*/
+  See https://docs.easydb.de/en/technical/node-runner/ for documentation on how
+  the script is run from the easyDb and which modules are available per default.
 
+  See https://docs.easydb.de/en/technical/plugins/webhooks/webhook/ for the
+  description of the parameter of the main function.
+*/
 function main(context) {
   const easyDbUrl = context.config.system.server.external_url;
 
@@ -224,4 +228,5 @@ function main(context) {
 
 }
 
-module.exports = {main}
+// easyDb node-runner expects a function exported as "main"
+module.exports = { main }
