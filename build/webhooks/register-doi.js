@@ -12,9 +12,16 @@ const config = require('../../config.js');
 
 
 function returnAndLogJsonError(error, status = 500) {
-  log(error, 'ERROR');
-
-  ez5.respondError('error.api.generic', {description: error}, status)
+  let description;
+  if (error instanceof Error) {
+    log(error.stack, 'ERROR');
+    description = error.toString();
+  }
+  else {
+    log(error, 'ERROR');
+    description = error;
+  }
+  ez5.respondError('error.api.generic', {description}, status)
 }
 
 function authHeader(username, password) {
@@ -70,7 +77,7 @@ async function registerDoiForObject(dbObject, easyDbOpts, dataciteOpts) {
   const systemObjectId = dbObject._system_object_id;
   const doi = `${doiPrefix}${systemObjectId}`;
 
-  let metadataXml = await getMetadataFromEasyDb(easyDbUrl, dbObject,_uuid);
+  let metadataXml = await getMetadataFromEasyDb(dbObject._uuid, xsltName, easyDbUrl);
   metadataXml = metadataXml.replace('___DOI_PLACEHOLDER___', doi);
 
   const dataciteMetadataUrl = dataciteEndpoint + '/metadata/' + doi;
@@ -119,7 +126,7 @@ async function registerDoiForObject(dbObject, easyDbOpts, dataciteOpts) {
   return { published: await postPublishedDoiToEasyDb(publish, easyDbUrl, easyDbToken) };
 }
 
-async function getMetadataFromEasyDb(objectUuid, easyDbUrl) {
+async function getMetadataFromEasyDb(objectUuid, xsltName, easyDbUrl) {
   // TODO Check if authentication as api-user is necessary?
   const metadataUrl = easyDbUrl + '/api/v1/objects/uuid/' + objectUuid + '/format/xslt/' + xsltName;
   const metadataResponse = await fetch(metadataUrl);
@@ -139,7 +146,7 @@ async function postPublishedDoiToEasyDb(publishObject, easyDbUrl, easyDbToken) {
   const publishResponse = await fetch(easyDbUrl + '/api/v1/publish?token=' + easyDbToken,
   {
     method: 'post',
-    body: JSON.stringify([{publishObject}])
+    body: JSON.stringify([{publish: publishObject}])
   })
   const publishResponseObject = await publishResponse.json();
   if (!publishResponse.ok ) {
@@ -208,11 +215,11 @@ function main(context) {
       log('All registerDoiForObject finished successfully');
       ez5.respondSuccess({status: statuses});
     }).catch(error => {
-      returnAndLogJsonError(error.toString());
+      returnAndLogJsonError(error);
     })
   }
   catch (error) {
-    returnAndLogJsonError(error.toString());
+    returnAndLogJsonError(error);
   }
 
 }
