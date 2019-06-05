@@ -1,3 +1,4 @@
+// easyDB Datacite Webhook plugin
 const util = require('util');
 const fs = require('fs');
 const querystring = require('querystring');
