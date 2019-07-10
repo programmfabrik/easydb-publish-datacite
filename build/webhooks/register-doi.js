@@ -144,7 +144,7 @@ async function postPublishedDoiToEasyDb(publishObject, easyDbUrl, easyDbToken) {
   const publishApiUrl = easyDbUrl + '/api/v1/publish?token=' + easyDbToken;
   log(`POST ${publishApiUrl}, with publish object:`);
   log(publishObject);
-  const publishResponse = await fetch(easyDbUrl + '/api/v1/publish?token=' + easyDbToken,
+  const publishResponse = await fetch(publishApiUrl,
   {
     method: 'post',
     body: JSON.stringify([{publish: publishObject}])
