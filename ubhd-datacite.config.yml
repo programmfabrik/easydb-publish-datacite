@@ -1,11 +1,12 @@
 plugin:
-  name: ubhd-datacite
+  name: publish-datacite
   version: 0.1
+  url: https://github.com/programmfabrik/easydb-plugin-examples
   displayname:
-    de-DE: Webhook zur DOI Registrierung mit Datacite, etc.
-    en-US: Webhook to register DOIs with Datacite, etc.
+    de-DE: Webhook zur DOI Registrierung mit Datacite
+    en-US: Webhook to register DOIs with Datacite
   info:
-    de-DE: ""
-    en-US: "Get easydb object metadata, register with DOI provider, call easydb publish API"
+    de-DE: "Holt easyDB Objekt Metadaten, sende Metadaten an Datacite und registriert eine DOI, sendet die DOI an easyDb publish API"
+    en-US: "Gets easydb object metadata, sends metadata to Datacite and registers DOI, sends the DOI to easydb publish API"
   webhooks:
     - name: register-doi

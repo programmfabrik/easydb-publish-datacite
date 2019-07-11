@@ -1,13 +1,17 @@
 {
-  "name": "easydb-ubhd-datacite",
+  "name": "easydb-publish-datacite",
   "version": "0.1.0",
   "description": "",
   "main": "build/webhooks/register-doi.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": {
+    "name": "Nils Weiher",
+    "email": "weiher@ub.uni-heidelberg.de",
+    "url": "https://github.com/UB-Heidelberg"
+  },
+  "license": "MIT",
   "dependencies": {
     "buffer-equal-constant-time": "^1.0.1",
     "node-fetch": "^2.3.0"
